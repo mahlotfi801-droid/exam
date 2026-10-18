@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📘 أولى ثانوى - العلوم المتكاملة</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:linear-gradient(135deg,#1e3c72,#2a5298); font-family:'Segoe UI',Tahoma,Arial,sans-serif; padding:30px; color:#333; }
+.exam-container { max-width:1000px; margin:auto; background:white; border-radius:25px; box-shadow:0 20px 40px rgba(0,0,0,0.2); padding:30px; }
+h1 { text-align:center; color:#1e3c72; margin-bottom:10px; }
+.subtitle { text-align:center; color:#555; margin-bottom:30px; border-bottom:2px solid #ddd; padding-bottom:15px; }
+.student-name-area { background:#eef5ff; padding:20px; border-radius:15px; margin-bottom:25px; border-right:5px solid #2a5298; }
+.student-name-area label { font-weight:bold; font-size:18px; color:#1e3c72; display:block; margin-bottom:10px; }
+.student-name-area input { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; font-size:16px; }
+.error-message { color:#e74c3c; font-size:14px; margin-top:8px; display:none; }
+.question-card { background:#f9f9ff; margin-bottom:25px; padding:20px; border-radius:15px; border-right:5px solid #2a5298; box-shadow:0 2px 5px rgba(0,0,0,0.05); }
+.question-text { font-weight:bold; font-size:18px; margin-bottom:15px; color:#1e3c72; }
+.options { list-style:none; padding-right:20px; }
+.options li { margin:10px 0; }
+.options label { margin-right:10px; cursor:pointer; }
+.essay-area textarea { width:100%; padding:12px; border-radius:10px; border:1px solid #ccc; font-family:inherit; font-size:14px; resize:vertical; }
+.feedback { margin-top:10px; font-size:14px; padding:8px; border-radius:8px; display:none; }
+.feedback.wrong { background:#ffe0e0; color:#a00; border-right:3px solid #a00; }
+.feedback.correct { background:#e0ffe0; color:#060; border-right:3px solid #060; }
+.submit-btn { display:block; width:220px; margin:30px auto; background:#2a5298; color:white; border:none; padding:15px 25px; font-size:18px; border-radius:40px; cursor:pointer; font-weight:bold; }
+.submit-btn:hover { background:#1e3c72; }
+.result-area { text-align:center; background:#eef5ff; padding:20px; border-radius:20px; margin-top:20px; font-size:22px; font-weight:bold; color:#1e3c72; }
+.section-title { background:#2a5298; color:white; padding:10px; border-radius:30px; text-align:center; margin:30px 0 20px; }
+footer { text-align:center; margin-top:20px; color:#888; font-size:12px; }
+.loading-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center; }
+.loading-overlay.active { display:flex; }
+.loading-box { background:white; padding:30px 40px; border-radius:20px; text-align:center; }
+.spinner { width:50px; height:50px; margin:0 auto 15px; border:5px solid #eef5ff; border-top-color:#2a5298; border-radius:50%; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+@media (max-width:600px) { body { padding:15px; } .exam-container { padding:15px; } }
+</style>
+</head>
+<body>
+<div class="exam-container" id="printArea">
+<h1 id="examTitle"></h1>
+<div class="subtitle" id="examSubtitle"></div>
+<div class="student-name-area">
+<label>👤 اسم الطالب (إجباري):</label>
+<input type="text" id="studentName" placeholder="أدخل اسمك كاملاً...">
+<div class="error-message" id="nameError">⚠️ الرجاء إدخال اسم الطالب</div>
+</div>
+<div class="section-title" id="mcqTitle"></div>
+<div id="mcq-questions"></div>
+<div class="section-title" id="essayTitle"></div>
+<div id="essay-questions"></div>
+<button class="submit-btn" id="submitBtn">📌 تسليم الامتحان</button>
+<div id="result" class="result-area"></div>
+<footer>⚠️ بعد التسليم سيتم إرسال النتيجة إلى المعلم تلقائياً.</footer>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+<div class="loading-box">
+<div class="spinner"></div>
+<p id="loadingText">جاري إرسال النتيجة...</p>
+</div>
+</div>
+
+<script>
+const EXAM_DATA = {"title":"📘 أولى ثانوى - العلوم المتكاملة","subtitle":"إختياري و مقالى","mcq":[{"text":"أى العبارات التالية صحيحة ؟ ...........","options":["الهواء الساخن أعلى كثافة ويهبط أسفل الهواء البارد","الهواء الساخن أقل كثافة ويهبط أسفل الهواء البارد","الهواء الساخن أعلى كثافة ويرتفع فوق الهواء البارد","الهواء الساخن أقل كثافة ويرتفع فوق الهواء البارد"],"correct":3},{"text":"إذا علمت أن درجة حرارة الإنسان الطبيعية تساوي 27C فإنها تعادل :","options":["300 K","27 K","310 K","273 K"],"correct":0},{"text":"ما النسبة التقريبية بين حجم الأكسجين إلى حجم الهيدروجين الناتج من التحليل الكهربى للماء ؟","options":["2","1/8","8","1/2"],"correct":3},{"text":"عند ذوبان ملح كربونات الصوديوم فى الماء ينتج عنه تكون حمض وقاعدة ويكون...........","options":["القاعدة الناتجة: قوي | الحمض الناتج: ضعيف","القاعدة الناتجة: ضعيف | الحمض الناتج: ضعيف","القاعدة الناتجة: قوي | الحمض الناتج: قوي","القاعدة الناتجة: ضعيف | الحمض الناتج: قوي"],"correct":0},{"text":"الإمتحان عامل اي ؟؟","options":["صعب","متوسط","كويس","ماذاكرناش"],"correct":1},{"text":"إذا كان حجم (1 KG) من الماء النقى عند درجة حرارة (2C) هو (V_1) . وحجم (1 KG) من الماء النقى عند درجة (4C) هو (V_2) ، فإن النسبة بين (V_1/V_2) ............","options":["أقل من الواحد الصحيح","أكبر من الواحد الصحيح","تساوى الواحد الصحيح","لا يمكن تحديد الإجابة"],"correct":1},{"text":"حيوانات الدم البارد تعيش في أعماق البحار وتكيف مع درجة الحرارة بسبب .......","options":["ارتفاع الحرارة النوعية للماء","زيادة ضغط الماء","الهروب من حرارة الشمس","زيادة كثافة الماء"],"correct":0},{"text":"أقل كثافة للماء عندما يكون ............","options":["سائلاً عند 4C","صلبًا عند 0C","صلبًا عند 4C","سائلاً عند 0C"],"correct":1},{"text":"ما العملية الحيويّة التي تقوم بها الحيوانات وتساهم من خلالها فى دورة المياه الطبيعية ؟","options":["التنفس","النتح","التمثيل الضوئى","النمو"],"correct":0},{"text":"أى مما يأتى من العمليات البيولوجية التى تساهم فى دورة المياه فى الطبيعة..........","options":["التنفس فى الحيوانات","الجريان","التسرب عبر مسام التربة","بخر الماء من البحار (مكتوبة في الأصل: البحر من البحار)"],"correct":0},{"text":"الحرارة النوعية لـ جم 5 من الماء ............ الحرارة النوعية لـ جم 200  من الماء","options":["يساوى","أقل من","لا توجد علاقة بينهما","أكبر من"],"correct":0},{"text":"أى مما يلى يمكن أن يمثل نسبة الغلاف الجليدي من الغلاف المائى ؟ ...........","options":["2%","1%","70%","97%"],"correct":0},{"text":"التمدد الشاذ للماء يكون عند ................","options":["رفع درجة حرارته من (4C الى درجة حرارة الغرفة)","رفع درجة حرارته من( 0C الى 4C )","رفع درجة حرارته من درجة حرارة الغرفةالى (0C)","خفض درجة حرارته من( 4C الى 0C )"],"correct":3},{"text":"وضعت كمية من الماء درجة حرارتها 3 C في مجمد الثلاجة, ماذا يحدث لكلتة الماء وحجمه عند التجمد ؟ ...","options":["كتلته: تزداد | حجمه: لا يتغير","كتلته: لا تتغير | حجمه: يزداد","كتلته: لا تتغير | حجمه: لا يتغير","كتلته: تزداد | حجمه: يزداد"],"correct":1},{"text":"الحرارة النوعية للألومنيوم والنحاس والحديد والذهب هي 0.9 و 0.385 و 0.445 و 0.124 على الترتيب، فما الفلز الذى يحتاج وقت أقل لترتفع طاقة حركة ذراته هو ................","options":["الذهب","الحديد","الألومنيوم","النحاس"],"correct":0},{"text":"قيمة pH لحمض قوى قد تكون ............","options":["13","6","7","1"],"correct":3},{"text":"اي مما يلى ليس من خصائص الماء التى تدعم الحياة ؟","options":["الروابط التساهمية بين ذراته","قدرته على التحول من صورة إلى أخرى","قدرته على إذابة العديد من المركبات الكيميائية","قدرته على المرور من أغشية الخلايا"],"correct":0},{"text":"درجة حرارة قاع البحار والمحيطات ........... بينما درجة حرارة سطح البحار والمحيطات ..........","options":["متغيير / متغيير","مستقر / مستقر","متغيير / مستقر","مستقر / متغيير"],"correct":3},{"text":"أى من المحاليل الآتية تكون درجة غليانها هي الأكبر بفرض تساوى التركيزات؟ ........","options":["محلول كربونات الصوديوم","محلول هيدروكسيد البوتاسيوم","محلول كلوريد الصوديوم","محلول الجلوكوز"],"correct":0},{"text":"أى العمليات التالية لا ينتج عنها زيادة فى نسبة بخار الماء فى الغلاف الجوى ؟","options":["النتح فى النبات","تنفس الحيوانات","بخر ماء البحر","تسرب المياه خلال الصخور الرسوبية"],"correct":3}],"essay":["إذا كانت كثافة الألومنيوم وكثافة الماء عند نفس درجة الحرارة 2700 Kg /m^3 و 1000 Kg /m^3 على الترتيب، احسب الكثافة النسبية للألومنيوم","ماذا يحدث عند :- تفاعل بخار الماء مع ثاني أكسيد الكربون وثاني أكسيد الكبريت في الهواء الجوي «بالنسبة للمطر» ؟","عملية تخلص الكائن الحي من الفضلات الناتجة من عمليات التمثيل الغذائي مثل: CO2 , H2O والفضلات النيتروجينية (كالأمونيا واليوريا وحمض البوليك)","علل لما يأتى :- ارتفاع درجة غليان الماء النقى عن درجة غليان كبريتيد الهيدروجين","احسـب كمية الحرار20 C  إلى 60 C (علماً بأن الحرارة النوعية للنحاس = 0.39 J/G. C","المحلول الذي فيه تركيز أيونات الهيدروجين أكبر من تركيز أيونات الهيدروكسيد (اكتب المصطلح العلمي)","الزاوية المحصورة بين الرابطتين التساهميتين الأحاديتين في جزيء الماء (أكتب المصطلح العلمى)","ما كثافة سائل حجمه 50 mL  وكتلته 500 g ....... ؟","المحلول الذي فيه تركيز أيونات الهيدروجين أكبر من تركيز أيونات الهيدروكسيد (اكتب المصطلح العلمي)"],"botToken":"8718572192:AAE5iaOlp6OH6yy1mBhFW1ZXNOSro7lg--w","chatId":"1055375519"};
+
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+function shuffleOptions(q) {
+    const correctText = q.options[q.correct];
+    const shuffled = shuffleArray(q.options);
+    return { text: q.text, options: shuffled, correct: shuffled.indexOf(correctText) };
+}
+
+let mcqQuestions = shuffleArray(EXAM_DATA.mcq).map(q => shuffleOptions(q));
+let essayQuestions = shuffleArray(EXAM_DATA.essay);
+let totalMcq = mcqQuestions.length;
+let isSubmitted = false;
+let finalScore = 0;
+let userMcqAnswers = [];
+let userEssayAnswers = [];
+
+document.getElementById('examTitle').textContent = EXAM_DATA.title;
+document.getElementById('examSubtitle').textContent = EXAM_DATA.subtitle;
+document.getElementById('mcqTitle').textContent = '🔹 أسئلة الاختيار من متعدد (' + totalMcq + ' سؤال) 🔹';
+document.getElementById('essayTitle').textContent = '✍️ الأسئلة المقالية (' + essayQuestions.length + ' سؤال)';
+
+function renderMcq() {
+    const c = document.getElementById('mcq-questions');
+    c.innerHTML = '';
+    if (totalMcq === 0) { c.innerHTML = "<p style='text-align:center;color:#888;'>لا توجد أسئلة اختيار من متعدد.</p>"; return; }
+    mcqQuestions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        let html = '<div class="question-text">' + (idx+1) + '. ' + q.text + '</div><ul class="options">';
+        q.options.forEach((opt, i) => {
+            const letter = (i + 1);
+            html += '<li><input type="radio" name="q'+idx+'" value="'+i+'" id="q'+idx+'_opt'+i+'"><label for="q'+idx+'_opt'+i+'">'+letter+'. '+opt+'</label></li>';
+        });
+        html += '</ul><div class="feedback" id="fb-'+idx+'"></div>';
+        card.innerHTML = html;
+        c.appendChild(card);
+    });
+}
+function renderEssay() {
+    const c = document.getElementById('essay-questions');
+    c.innerHTML = '';
+    if (essayQuestions.length === 0) { c.innerHTML = "<p style='text-align:center;color:#888;'>لا توجد أسئلة مقالية.</p>"; return; }
+    essayQuestions.forEach((q, idx) => {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+        card.innerHTML = '<div class="question-text">✏️ سؤال مقالي '+(idx+1)+': '+q+'</div><div class="essay-area"><textarea rows="3" placeholder="اكتب إجابتك هنا..." id="essay-'+idx+'"></textarea></div>';
+        c.appendChild(card);
+    });
+}
+
+function generatePDFBlob(studentName, dateStr) {
+    // بناء HTML منفصل لتوليد PDF
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed; left:-9999px; top:0; width:800px; padding:40px; background:white; font-family:Arial,sans-serif; direction:rtl;';
+    let html = '<h1 style="color:#1e3c72; text-align:center; margin-bottom:10px;">' + EXAM_DATA.title + '</h1>';
+    html += '<p style="text-align:center; color:#555; margin-bottom:20px;">' + EXAM_DATA.subtitle + '</p>';
+    html += '<div style="background:#eef5ff; padding:15px; border-radius:10px; margin-bottom:20px; border-right:4px solid #2a5298;">';
+    html += '<p><strong>👤 اسم الطالب:</strong> ' + studentName + '</p>';
+    html += '<p><strong>📅 التاريخ:</strong> ' + dateStr + '</p>';
+    html += '<p><strong>🎯 الدرجة:</strong> ' + finalScore + ' / ' + totalMcq + '</p>';
+    html += '<p><strong>🟢 الصحيحة:</strong> ' + finalScore + ' | <strong>🔴 الخاطئة:</strong> ' + (totalMcq - finalScore) + '</p>';
+    html += '</div>';
+    html += '<h2 style="color:#2a5298; border-bottom:2px solid #2a5298; padding-bottom:8px;">🔹 أسئلة الاختيار من متعدد</h2>';
+
+    mcqQuestions.forEach((q, i) => {
+        const u = userMcqAnswers[i];
+        const uText = u !== -1 ? q.options[u] : 'لم يتم الاختيار';
+        const correctText = q.options[q.correct];
+        const isCorrect = u === q.correct;
+        html += '<div style="margin-bottom:18px; padding:12px; background:#f9f9ff; border-radius:10px; border-right:4px solid '+(isCorrect?'#27ae60':'#e74c3c')+';">';
+        html += '<p style="font-weight:bold; color:#1e3c72; margin-bottom:6px;">' + (i+1) + '. ' + q.text + '</p>';
+        html += '<p>📌 إجابة الطالب: ' + uText + ' ' + (isCorrect ? '✅' : '❌') + '</p>';
+        if (!isCorrect) html += '<p style="color:#27ae60;">✅ الإجابة الصحيحة: ' + correctText + '</p>';
+        html += '</div>';
+    });
+
+    if (essayQuestions.length > 0) {
+        html += '<h2 style="color:#2a5298; border-bottom:2px solid #2a5298; padding-bottom:8px; margin-top:25px;">✍️ الأسئلة المقالية</h2>';
+        essayQuestions.forEach((q, i) => {
+            html += '<div style="margin-bottom:18px; padding:12px; background:#fff9e6; border-radius:10px; border-right:4px solid #f39c12;">';
+            html += '<p style="font-weight:bold; color:#1e3c72; margin-bottom:6px;">سؤال ' + (i+1) + ': ' + q + '</p>';
+            html += '<p style="background:white; padding:8px; border-radius:6px;">📝 ' + (userEssayAnswers[i] || 'لم يكتب إجابة') + '</p>';
+            html += '</div>';
+        });
+    }
+
+    wrapper.innerHTML = html;
+    document.body.appendChild(wrapper);
+
+    return html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+        document.body.removeChild(wrapper);
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfW = pdf.internal.pageSize.getWidth();
+        const pdfH = pdf.internal.pageSize.getHeight();
+        const imgW = pdfW - 20;
+        const imgH = (canvas.height * imgW) / canvas.width;
+
+        let heightLeft = imgH;
+        let position = 10;
+
+        // الصفحة الأولى
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 10, position, imgW, imgH);
+        heightLeft -= (pdfH - 20);
+
+        // صفحات إضافية
+        while (heightLeft > 0) {
+            position = heightLeft - imgH + 10;
+            pdf.addPage();
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 10, position, imgW, imgH);
+            heightLeft -= (pdfH - 20);
+        }
+        return pdf.output('blob');
+    });
+}
+
+async function sendPDFToTelegram(studentName, pdfBlob, dateStr) {
+    const fileName = studentName.replace(/[\\/:*?"<>|]/g, '_') + '_' + Date.now() + '.pdf';
+    const caption = '📢 *نتيجة امتحان جديدة*\n\n'
+        + '📘 *الامتحان:* ' + EXAM_DATA.title + '\n'
+        + '👤 *الطالب:* ' + studentName + '\n'
+        + '📅 *التاريخ:* ' + dateStr + '\n'
+        + '🎯 *الدرجة:* ' + finalScore + ' / ' + totalMcq + '\n'
+        + '🟢 *الصحيحة:* ' + finalScore + ' | 🔴 *الخاطئة:* ' + (totalMcq - finalScore);
+
+    const formData = new FormData();
+    formData.append('chat_id', EXAM_DATA.chatId);
+    formData.append('document', pdfBlob, fileName);
+    formData.append('caption', caption);
+    formData.append('parse_mode', 'Markdown');
+
+    try {
+        const res = await fetch('https://api.telegram.org/bot' + EXAM_DATA.botToken + '/sendDocument', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        return data.ok;
+    } catch(e) { console.error(e); return false; }
+}
+
+async function submitExam() {
+    if (isSubmitted) return;
+    const nameInput = document.getElementById('studentName');
+    const studentName = nameInput.value.trim();
+    const nameError = document.getElementById('nameError');
+
+    if (studentName === '') {
+        nameError.style.display = 'block';
+        nameInput.style.border = '2px solid #e74c3c';
+        nameInput.scrollIntoView({ behavior:'smooth', block:'center' });
+        return;
+    }
+    nameError.style.display = 'none';
+    isSubmitted = true;
+
+    let score = 0;
+    userMcqAnswers = [];
+    for (let i = 0; i < mcqQuestions.length; i++) {
+        const selected = document.querySelector('input[name="q'+i+'"]:checked');
+        const fb = document.getElementById('fb-'+i);
+        const correctIdx = mcqQuestions[i].correct;
+        const correctText = mcqQuestions[i].options[correctIdx];
+        let choice = -1;
+        if (selected) {
+            choice = parseInt(selected.value);
+            if (choice === correctIdx) {
+                score++;
+                fb.innerHTML = '✅ إجابتك صحيحة.';
+                fb.className = 'feedback correct';
+            } else {
+                fb.innerHTML = '❌ إجابتك خاطئة. الإجابة الصحيحة: ' + correctText;
+                fb.className = 'feedback wrong';
+            }
+        } else {
+            fb.innerHTML = '⚠️ لم تختر إجابة. الإجابة الصحيحة: ' + correctText;
+            fb.className = 'feedback wrong';
+        }
+        fb.style.display = 'block';
+        userMcqAnswers.push(choice);
+    }
+    finalScore = score;
+
+    userEssayAnswers = [];
+    for (let i = 0; i < essayQuestions.length; i++) {
+        const ta = document.getElementById('essay-'+i);
+        userEssayAnswers.push(ta ? ta.value : '');
+    }
+
+    document.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+    document.querySelectorAll('textarea').forEach(t => t.disabled = true);
+    nameInput.disabled = true;
+    document.getElementById('submitBtn').disabled = true;
+
+    // عرض النتيجة مباشرة للطالب
+    document.getElementById('result').innerHTML =
+        '🎯 *نتيجتك:* ' + finalScore + ' من ' + totalMcq + '<br>'
+        + '📊 النسبة: ' + Math.round((finalScore/totalMcq)*100) + '%<br>'
+        + (finalScore === totalMcq ? '🌟 ممتاز! أداء رائع' :
+           finalScore >= totalMcq*0.7 ? '👍 جيد جداً' :
+           finalScore >= totalMcq*0.5 ? '🙂 مقبول' : '📚 يحتاج مراجعة');
+
+    document.getElementById('loadingOverlay').classList.add('active');
+    document.getElementById('loadingText').textContent = 'جاري توليد PDF وإرساله للمعلم...';
+
+    const dateStr = new Date().toLocaleString('ar-EG');
+    try {
+        const pdfBlob = await generatePDFBlob(studentName, dateStr);
+        const ok = await sendPDFToTelegram(studentName, pdfBlob, dateStr);
+        document.getElementById('loadingOverlay').classList.remove('active');
+        document.getElementById('result').innerHTML += '<br>' + (ok ? '✅ تم إرسال النتيجة للمعلم بنجاح!' : '⚠️ فشل إرسال PDF (تأكد من الاتصال).');
+    } catch(e) {
+        console.error(e);
+        document.getElementById('loadingOverlay').classList.remove('active');
+        document.getElementById('result').innerHTML += '<br>⚠️ خطأ في توليد PDF.';
+    }
+}
+
+document.getElementById('submitBtn').addEventListener('click', submitExam);
+renderMcq();
+renderEssay();
+</script>
+</body>
+</html>
